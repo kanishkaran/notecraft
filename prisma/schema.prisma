@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         String     @id @default(cuid())
+  email      String     @unique
+  name       String?
+  image      String?
+  createdAt  DateTime   @default(now())
+  entries    Entry[]
+  categories Category[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  color     String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries   Entry[]
+
+  @@unique([userId, name])
+}
+
+model Entry {
+  id         String    @id @default(cuid())
+  date       String
+  text       String
+  timeLabel  String
+  timestamp  BigInt
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  embedding  Unsupported("vector(384)")?
+
+  @@index([date])
+  @@index([categoryId])
+  @@index([userId, date])
+}

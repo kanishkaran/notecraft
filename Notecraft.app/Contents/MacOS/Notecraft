@@ -1,0 +1,90 @@
+#!/bin/bash
+
+PROJECT_DIR="/Users/kanishkaran/Desktop/Personal/Project/notecraft"
+PLIST_DST="/Users/kanishkaran/Library/LaunchAgents/com.notecraft.server.plist"
+SERVICE="com.notecraft.server"
+PORT=3000
+LAUNCHER_LOG="/tmp/notecraft-launcher.log"
+GUI_DOMAIN="gui/$(id -u)"
+
+log() { echo "$(date '+%H:%M:%S') $*" >> "$LAUNCHER_LOG"; }
+log "=== Launch started (uid=$(id -u)) ==="
+
+server_ready() { curl -sf "http://localhost:$PORT" > /dev/null 2>&1; }
+
+wait_for_server() {
+  for _ in $(seq 1 80); do
+    server_ready && return 0
+    sleep 0.5
+  done
+  return 1
+}
+
+if ! server_ready; then
+  # Write plist if needed
+  if [ ! -f "$PLIST_DST" ]; then
+    log "Writing plist..."
+    mkdir -p "/Users/kanishkaran/Library/LaunchAgents"
+    cat > "$PLIST_DST" << 'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.notecraft.server</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/node</string>
+    <string>/Users/kanishkaran/Desktop/Personal/Project/notecraft/node_modules/.bin/next</string>
+    <string>dev</string>
+    <string>--port</string>
+    <string>3000</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/kanishkaran/Desktop/Personal/Project/notecraft</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HOME</key>
+    <string>/Users/kanishkaran</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/tmp/notecraft.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/notecraft.log</string>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>KeepAlive</key>
+  <false/>
+</dict>
+</plist>
+PLIST
+    log "write exit: $?"
+  fi
+
+  # Use gui/ domain — inherits the logged-in user's Desktop/file permissions
+  log "Bootstrapping into gui domain..."
+  launchctl bootout "$GUI_DOMAIN/$SERVICE" 2>/dev/null
+  launchctl bootstrap "$GUI_DOMAIN" "$PLIST_DST"
+  log "bootstrap exit: $?"
+
+  log "Kickstarting service..."
+  launchctl kickstart "$GUI_DOMAIN/$SERVICE"
+  log "kickstart exit: $?"
+
+  log "Waiting for server on port $PORT..."
+  if ! wait_for_server; then
+    log "Timed out. Server log:"
+    cat /tmp/notecraft.log >> "$LAUNCHER_LOG" 2>/dev/null
+    osascript -e 'display alert "Notecraft" message "Server failed to start. Check /tmp/notecraft-launcher.log for details."'
+    exit 1
+  fi
+fi
+
+log "Server ready — opening Chrome"
+open -na "Google Chrome" --args \
+  --app="http://localhost:$PORT" \
+  --window-size=1280,860 \
+  --no-first-run \
+  --no-default-browser-check
