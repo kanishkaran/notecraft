@@ -66,7 +66,7 @@ interface Props {
 }
 
 export function ActivityBackground({ data, year, month }: Props) {
-  const today = new Date();
+  const today = useMemo(() => new Date(), []);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const COLS = daysInMonth <= 28 ? 7 : daysInMonth <= 30 ? 6 : 7;
   const ROWS = Math.ceil(daysInMonth / COLS);
@@ -80,7 +80,7 @@ export function ActivityBackground({ data, year, month }: Props) {
       const isFuture = date > today && !isToday;
       return { isToday, isFuture, level: heatLevel(count) };
     });
-  }, [data, year, month]); // eslint-disable-line
+  }, [data, year, month, daysInMonth, today]);
 
   return (
     <>

@@ -1,12 +1,18 @@
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
+
+function subscribe(callback: () => void): () => void {
+  window.addEventListener("resize", callback);
+  return () => window.removeEventListener("resize", callback);
+}
+
+function getSnapshot(): number {
+  return window.innerWidth;
+}
+
+function getServerSnapshot(): number {
+  return 1024; // match server — real value set after mount
+}
 
 export function useWindowWidth(): number {
-  const [width, setWidth] = useState(1024); // match server — real value set after mount
-  useEffect(() => {
-    setWidth(window.innerWidth);
-    const handleResize = () => setWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-  return width;
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

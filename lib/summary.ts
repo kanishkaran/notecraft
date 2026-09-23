@@ -134,6 +134,7 @@ const YearState = Annotation.Root({
   }),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- used via `typeof MonthStep.State` below
 const MonthStep = Annotation.Root({
   year: Annotation<number>,
   month: Annotation<MonthData>,
