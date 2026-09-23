@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     : streamRangeSummary(type, label ?? `${from} – ${to}`, entries);
 
   // Pull the first chunk before committing to a 200, so credential and model
-  // errors (missing ~/.aws, Bedrock model not enabled, …) become readable JSON
+  // errors (missing GROQ_API_KEY, invalid model, …) become readable JSON
   let first: IteratorResult<string>;
   try {
     first = await generator[Symbol.asyncIterator]().next();
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     console.error("Summary generation failed:", err);
     const detail = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { error: "bedrock_failed", message: `Couldn't reach AWS Bedrock — check your local AWS credentials and model access. (${detail})` },
+      { error: "groq_failed", message: `Couldn't reach Groq — check your GROQ_API_KEY. (${detail})` },
       { status: 502 },
     );
   }

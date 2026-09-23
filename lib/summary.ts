@@ -1,4 +1,4 @@
-import { ChatBedrockConverse } from "@langchain/aws";
+import { ChatGroq } from "@langchain/groq";
 import { StateGraph, Annotation, Send, START, END } from "@langchain/langgraph";
 import type { AIMessageChunk } from "@langchain/core/messages";
 
@@ -11,13 +11,12 @@ export type SummaryEntry = {
   category: { name: string } | null;
 };
 
-// Bedrock cross-region inference profiles; override via env to use any Bedrock model
-const FAST_MODEL = process.env.SUMMARY_FAST_MODEL ?? "us.amazon.nova-lite-v1:0";
-const QUALITY_MODEL = process.env.SUMMARY_MODEL ?? "us.amazon.nova-pro-v1:0";
-const REGION = process.env.BEDROCK_REGION ?? process.env.AWS_REGION ?? "us-east-1";
+// Override via env to use any Groq-hosted model
+const FAST_MODEL = process.env.SUMMARY_FAST_MODEL ?? "openai/gpt-oss-20b";
+const QUALITY_MODEL = process.env.SUMMARY_MODEL ?? "openai/gpt-oss-120b";
 
-function makeModel(model: string, maxTokens: number, temperature: number): ChatBedrockConverse {
-  return new ChatBedrockConverse({ model, region: REGION, maxTokens, temperature });
+function makeModel(model: string, maxTokens: number, temperature: number): ChatGroq {
+  return new ChatGroq({ model, apiKey: process.env.GROQ_API_KEY, maxTokens, temperature });
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -98,7 +97,7 @@ function chunkText(chunk: AIMessageChunk): string {
     : chunk.content.map(c => (c.type === "text" ? c.text : "")).join("");
 }
 
-async function* streamModel(model: ChatBedrockConverse, system: string, user: string): AsyncGenerator<string> {
+async function* streamModel(model: ChatGroq, system: string, user: string): AsyncGenerator<string> {
   const stream = await model.stream([
     { role: "system", content: system },
     { role: "user", content: user },
