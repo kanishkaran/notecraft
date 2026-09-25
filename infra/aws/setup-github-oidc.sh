@@ -81,15 +81,14 @@ cat > /tmp/deploy-policy.json <<EOF
       "Effect": "Allow",
       "Action": [
         "ecs:DescribeServices",
-        "ecs:DescribeTaskDefinition",
         "ecs:UpdateService"
       ],
       "Resource": ["${ECS_CLUSTER_ARN}", "${ECS_SERVICE_ARN}"]
     },
     {
-      "Sid": "ECSRegisterTaskDef",
+      "Sid": "ECSTaskDefNoResourceScoping",
       "Effect": "Allow",
-      "Action": "ecs:RegisterTaskDefinition",
+      "Action": ["ecs:DescribeTaskDefinition", "ecs:RegisterTaskDefinition"],
       "Resource": "*"
     },
     {
